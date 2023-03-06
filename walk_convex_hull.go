@@ -9,7 +9,6 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
-	"sort"
 	"strings"
 	"sync"
 )
@@ -63,7 +62,13 @@ func GetTargetRates(rate int, numRates int) []int {
 		targetRates = append(targetRates, currentRate)
 	}
 
-	sort.Reverse(sort.IntSlice(targetRates))
+	// In reverse order
+	for i := 0; i < len(targetRates)/2; i++ {
+		temp := targetRates[i]
+		targetRates[i] = targetRates[len(targetRates)-1-i]
+		targetRates[len(targetRates)-1-i] = temp
+	}
+
 	return targetRates
 }
 
@@ -129,8 +134,8 @@ func GetOptimalResolutionForRate(referenceVideoFilename string, referenceVideoRe
 		return ConvexHullPoint{Resolution: candidateResolution, Rate: rate, VmafScore: -1.}, nil
 	}
 
-	referenceFileName := strings.Split(referenceVideoFilename, ".")[0]
-	referenceExt := strings.Split(referenceVideoFilename, ".")[1]
+	referenceFileName := strings.TrimSuffix(referenceVideoFilename, ".mp4")
+	referenceExt := "mp4"
 	candidateResolutionEncodedFilename := fmt.Sprintf("%s_%dx%d_%dkbps.%s", referenceFileName, candidateResolution.Height, candidateResolution.Width, rate, referenceExt)
 	candidateResolutionEncodeSuccess := make(chan bool)
 	go EncodeVideo(referenceVideoFilename, candidateResolutionEncodedFilename, candidateResolution, rate, candidateResolutionEncodeSuccess)
@@ -224,7 +229,7 @@ func WriteConvexHullToJson(convexHull []ConvexHullPoint, filename string) error 
 
 func EstimateVmafConvexHull(videoFilename string, wg *sync.WaitGroup) {
 	defer wg.Done()
-	convexHullFilename := fmt.Sprintf("%s_convex_hull.json", strings.Split(videoFilename, ".")[0])
+	convexHullFilename := fmt.Sprintf("%s_convex_hull.json", strings.TrimSuffix(videoFilename, ".mp4"))
 	_, err := os.OpenFile(convexHullFilename, os.O_RDONLY, 0666)
 	if !os.IsNotExist(err) {
 		fmt.Printf("Convex hull file %s already exists. Skipping.\n", convexHullFilename)
