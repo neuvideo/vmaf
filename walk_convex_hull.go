@@ -80,7 +80,7 @@ func EncodeVideo(filename string, outputFilename string, resolution Resolution, 
 	success <- true
 }
 
-func ParseVmafLogFile(logPath string) float64 {
+func ParseVmafScoreFromLogFile(logPath string) float64 {
 	jsonFile, err := os.Open(logPath)
 	if err != nil {
 		fmt.Printf("Error opening log file: %s\n", err.Error())
@@ -89,11 +89,13 @@ func ParseVmafLogFile(logPath string) float64 {
 	defer jsonFile.Close()
 	byteValue, _ := ioutil.ReadAll(jsonFile)
 
-	var result map[string]interface{}
-	json.Unmarshal([]byte(byteValue), &result)
+	var result map[string]map[string]map[string]interface{}
+	err = json.Unmarshal(byteValue, &result)
+	if err != nil {
+		return -1.0
+	}
 
-	fmt.Println(result["vmaf"])
-	return 0.0
+	return result["pooled_metrics"]["vmaf"]["mean"].(float64)
 }
 
 func ComputeVmaf(referenceFilename string, referenceResolution Resolution, testFilename string, result chan float64) {
@@ -115,7 +117,7 @@ func ComputeVmaf(referenceFilename string, referenceResolution Resolution, testF
 	}
 
 	// Parse the log file.
-	result <- ParseVmafLogFile(logPath)
+	result <- ParseVmafScoreFromLogFile(logPath)
 }
 
 func GetOptimalResolutionForRate(referenceVideoFilename string, referenceVideoResolution Resolution, rate int, candidateResolution Resolution) (ConvexHullPoint, error) {
