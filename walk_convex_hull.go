@@ -1,13 +1,10 @@
 package main
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
-	"math"
-	"math/rand"
-	"time"
+	vidio "github.com/AlexEidt/Vidio"
+	"os/exec"
 )
 
 type Resolution struct {
@@ -15,7 +12,11 @@ type Resolution struct {
 	Width  int
 }
 
-var resolutions = []Resolution{Resolution{1080, 1920}, Resolution{720, 1280}, Resolution{480, 854}, Resolution{360, 640}, Resolution{240, 426}, Resolution{144, 256}}
+func (resolution *Resolution) ToFilterString() string {
+	return fmt.Sprintf("%dx%d", resolution.Width, resolution.Height)
+}
+
+var resolutions = []Resolution{{1080, 1920}, {720, 1280}, {540, 960}, {360, 640}, {270, 480}}
 
 type ConvexHullPoint struct {
 	Resolution Resolution
@@ -32,91 +33,122 @@ func GetNextResolution(resolution Resolution) (Resolution, error) {
 	return Resolution{}, errors.New("no next resolution")
 }
 
+func IntMax(a int, b int) int {
+	if a > b {
+		return a
+	}
+	return b
+}
+
 func GetTargetRates(rate int, numRates int) []int {
 	var targetRates []int
-	currentRate := rate
+
+	// The minimum rate is 150kbps and the minimum gap between rates is 150kpbs.
+	gap := IntMax(rate/numRates, 150)
+	currentRate := 150
 	targetRates = append(targetRates, currentRate)
-	gap := float32(rate) / float32(numRates)
-	for i := 0; i < numRates; i++ {
-		currentRate = int(math.Floor(float64(currentRate) - float64(gap)))
-		if currentRate < 150 {
+
+	for i := 1; i < numRates; i++ {
+		currentRate += gap
+		if currentRate >= rate {
 			break
 		}
 		targetRates = append(targetRates, currentRate)
 	}
+
+	targetRates = append(targetRates, rate)
+
 	return targetRates
 }
 
 // EncodeVideo Encodes the video and returns the encoded file name.
-func EncodeVideo(filename string, outputFilename string, resolution Resolution, rate int) error {
+func EncodeVideo(filename string, outputFilename string, resolution Resolution, rate int, success chan bool) {
 	fmt.Printf("Encoding %s to %d kbps and resolution %dx%d\n", filename, rate, resolution.Height, resolution.Width)
-	return nil
-}
 
-func ComputeVmaf(referenceFilename string, testFilename string, result chan float64) error {
-	fmt.Printf("Computing VMAF for %s and %s\n", referenceFilename, testFilename)
-	rand.Seed(time.Now().UnixNano())
-	vmafScore := rand.Float64() * 100.0
-	result <- vmafScore
-	return nil
-}
-
-func GetOptimalResolutionForRate(filename string, resolution Resolution, rate int) (ConvexHullPoint, error) {
-
-	// Get the next resolution
-	nextResolution, err := GetNextResolution(resolution)
+	cmd := exec.Command("ffmpeg", "-i", filename, "-c:v", "libx264", "-b:v", fmt.Sprintf("%dk", rate), "-s", fmt.Sprintf("%dx%d", resolution.Width, resolution.Height), outputFilename)
+	fmt.Printf("Executing command: %s\n", cmd.String())
+	err := cmd.Run()
 	if err != nil {
-		// Return the current resolution
-		return ConvexHullPoint{Resolution: resolution, Rate: rate, VmafScore: -1.}, nil
+		fmt.Printf("Error encoding video: %s\n", err.Error())
+		success <- false
+		return
 	}
 
-	currentResolutionEncodedFilename := fmt.Sprintf("%s_%dx%d_%dkbps", filename, resolution.Height, resolution.Width, rate)
-	go func() {
-		err := EncodeVideo(filename, currentResolutionEncodedFilename, resolution, rate)
-		if err != nil {
-			fmt.Printf("Error encoding %s to %d kbps and resolution %dx%d. Error code: %s\n", filename, rate, nextResolution.Height, nextResolution.Width, err.Error())
-		}
-	}()
+	success <- true
+}
 
-	nextResolutionEncodedFilename := fmt.Sprintf("%s_%dx%d_%dkbps", filename, nextResolution.Height, nextResolution.Width, rate)
-	go func() {
-		err := EncodeVideo(filename, nextResolutionEncodedFilename, nextResolution, rate)
-		if err != nil {
-			fmt.Printf("Error encoding %s to %d kbps and resolution %dx%d. Error code: %s\n", filename, rate, nextResolution.Height, nextResolution.Width, err.Error())
-		}
-	}()
+func ComputeVmaf(referenceFilename string, referenceResolution Resolution, testFilename string, result chan float64) {
+	fmt.Printf("Computing VMAF for %s and %s\n", referenceFilename, testFilename)
+	// Upscale the test video to the reference resolution if necessary, then compute the vmaf score.
+
+	// Compute the VMAF score.
+	filterCmd := fmt.Sprintf("[0:v]scale=%s:flags=bicubic:[main];[main][1:v]libvmaf=n_threads=8:log_fmt=json:log_path=%s.json", referenceResolution.ToFilterString(), testFilename)
+
+	cmd := exec.Command("ffmpeg", "-i", testFilename, "-i", referenceFilename, "-filter_complex", filterCmd, "-f", "null", "-")
+	fmt.Printf("Executing command: %s\n", cmd.String())
+	err := cmd.Run()
+	if err != nil {
+		fmt.Printf("Error encoding video: %s\n", err.Error())
+		result <- -1.0
+		return
+	}
+
+	result <- 0.0
+}
+
+func GetOptimalResolutionForRate(referenceVideoFilename string, referenceVideoResolution Resolution, rate int, candidateResolution Resolution) (ConvexHullPoint, error) {
+
+	// Get the next candidate resolution.
+	nextResolution, err := GetNextResolution(candidateResolution)
+	if err != nil {
+		return ConvexHullPoint{Resolution: candidateResolution, Rate: rate, VmafScore: -1.}, nil
+	}
+
+	candidateResolutionEncodedFilename := fmt.Sprintf("%s_%dx%d_%dkbps", referenceVideoFilename, candidateResolution.Height, candidateResolution.Width, rate)
+	candidateResolutionEncodeSuccess := make(chan bool)
+	go EncodeVideo(referenceVideoFilename, candidateResolutionEncodedFilename, candidateResolution, rate, candidateResolutionEncodeSuccess)
+
+	nextResolutionEncodedFilename := fmt.Sprintf("%s_%dx%d_%dkbps", referenceVideoFilename, nextResolution.Height, nextResolution.Width, rate)
+	nextResolutionEncodeSuccess := make(chan bool)
+	go EncodeVideo(referenceVideoFilename, nextResolutionEncodedFilename, nextResolution, rate, nextResolutionEncodeSuccess)
 
 	// Wait for the encodings to finish.
+	candidateEncodeSuccess := <-candidateResolutionEncodeSuccess
+	nextEncodeSuccess := <-nextResolutionEncodeSuccess
+	if !candidateEncodeSuccess || !nextEncodeSuccess {
+		return ConvexHullPoint{}, errors.New("failed to encode video")
+	}
 
-	currentResVmafResult := make(chan float64, 1)
-	nextResVmafResult := make(chan float64, 1)
+	candidateVmafResult := make(chan float64, 1)
+	nextVmafResult := make(chan float64, 1)
 
 	// Compute VMAF for the two encodings.
-	go ComputeVmaf(filename, currentResolutionEncodedFilename, currentResVmafResult)
-	go ComputeVmaf(filename, nextResolutionEncodedFilename, nextResVmafResult)
+	go ComputeVmaf(referenceVideoFilename, referenceVideoResolution, candidateResolutionEncodedFilename, candidateVmafResult)
+	go ComputeVmaf(referenceVideoFilename, referenceVideoResolution, nextResolutionEncodedFilename, nextVmafResult)
 
 	// Wait for the VMAF computations to finish.
-	currentResolutionVmaf := <-currentResVmafResult
-	nextResolutionVmaf := <-nextResVmafResult
+	candidateResolutionVmaf := <-candidateVmafResult
+	nextResolutionVmaf := <-nextVmafResult
 
-	fmt.Printf("VMAF for %s is %f\n", currentResolutionEncodedFilename, currentResolutionVmaf)
-	fmt.Printf("VMAF for %s is %f\n", nextResolutionEncodedFilename, nextResolutionVmaf)
+	if candidateResolutionVmaf < 0 || nextResolutionVmaf < 0 {
+		return ConvexHullPoint{}, errors.New("failed to compute VMAF")
+	}
 
 	// Return the resolution with the best VMAF.
-	if currentResolutionVmaf > nextResolutionVmaf {
-		return ConvexHullPoint{Resolution: resolution, Rate: rate, VmafScore: currentResolutionVmaf}, nil
+	if candidateResolutionVmaf > nextResolutionVmaf {
+		return ConvexHullPoint{Resolution: candidateResolution, Rate: rate, VmafScore: candidateResolutionVmaf}, nil
 	}
 
 	return ConvexHullPoint{Resolution: nextResolution, Rate: rate, VmafScore: nextResolutionVmaf}, nil
 }
 
-func WalkConvexHull(filename string, resolution Resolution, rate int, numRates int) ([]ConvexHullPoint, error) {
-	targetRates := GetTargetRates(rate, numRates)
+func WalkConvexHull(referenceVideoFilename string, referenceVideoResolution Resolution, referenceVideoRate int, numRates int) ([]ConvexHullPoint, error) {
+	targetRates := GetTargetRates(referenceVideoRate, numRates)
 
 	convexHull := make([]ConvexHullPoint, 0)
-	currentResolution := resolution
+	currentResolution := referenceVideoResolution
 	for _, targetRate := range targetRates {
-		convexHullPoint, err := GetOptimalResolutionForRate(filename, currentResolution, targetRate)
+		convexHullPoint, err := GetOptimalResolutionForRate(referenceVideoFilename, referenceVideoResolution, targetRate, currentResolution)
 		if err != nil {
 			fmt.Printf("Error getting optimal resolution for rate %d. Error code: %s\n", targetRate, err.Error())
 			return convexHull, err
@@ -127,14 +159,42 @@ func WalkConvexHull(filename string, resolution Resolution, rate int, numRates i
 	return convexHull, nil
 }
 
-func main() {
-	convexHull, err := WalkConvexHull("test.mp4", Resolution{Width: 1920, Height: 1080}, 5000, 50)
-	file, _ := json.MarshalIndent(convexHull, "", " ")
+func GetVideoResolutionAndBitrate(filename string) (Resolution, int) {
+	resolution := Resolution{}
+	rate := -1
 
-	_ = ioutil.WriteFile("test.json", file, 0644)
+	video, err := vidio.NewVideo(filename)
 	if err != nil {
-		fmt.Printf("Error walking the convex hull. Error code: %s\n", err.Error())
-		return
+		fmt.Printf("Error opening video %s. Error code: %s\n", filename, err.Error())
+		return resolution, rate
 	}
-	fmt.Printf("Convex hull: %v\n", convexHull)
+	resolution.Width = video.Width()
+	resolution.Height = video.Height()
+	rate = video.Bitrate()
+	return resolution, rate
+}
+
+//func main() {
+//	filenames := []string{"test.mp4", "test2.mp4"}
+//
+//	for _, filename := range filenames {
+//		resolution, rate := GetVideoResolutionAndBitrate(filename)
+//		if resolution.Height > 1080 {
+//			fmt.Printf("Video %s has resolution %dx%d. Skipping.\n", filename, resolution.Height, resolution.Width)
+//			continue
+//		}
+//
+//		convexHull, err := WalkConvexHull(filename, resolution, rate, 20)
+//		if err != nil {
+//			fmt.Printf("Error walking convex hull for %s. Error code: %s\n", filename, err.Error())
+//			return
+//		}
+//		fmt.Printf("Convex hull for %s: %v\n", filename, convexHull)
+//	}
+//}
+
+func main() {
+	score := make(chan float64, 1)
+	go ComputeVmaf("test.mp4", Resolution{Height: 480, Width: 720}, "test_480x360_150kbps.mp4", score)
+	fmt.Printf("Score: %f\n", <-score)
 }
