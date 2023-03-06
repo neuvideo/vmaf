@@ -1,9 +1,12 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	vidio "github.com/AlexEidt/Vidio"
+	"io/ioutil"
+	"os"
 	"os/exec"
 )
 
@@ -77,12 +80,30 @@ func EncodeVideo(filename string, outputFilename string, resolution Resolution, 
 	success <- true
 }
 
+func ParseVmafLogFile(logPath string) float64 {
+	jsonFile, err := os.Open(logPath)
+	if err != nil {
+		fmt.Printf("Error opening log file: %s\n", err.Error())
+		return -1.0
+	}
+	defer jsonFile.Close()
+	byteValue, _ := ioutil.ReadAll(jsonFile)
+
+	var result map[string]interface{}
+	json.Unmarshal([]byte(byteValue), &result)
+
+	fmt.Println(result["vmaf"])
+	return 0.0
+}
+
 func ComputeVmaf(referenceFilename string, referenceResolution Resolution, testFilename string, result chan float64) {
 	fmt.Printf("Computing VMAF for %s and %s\n", referenceFilename, testFilename)
 	// Upscale the test video to the reference resolution if necessary, then compute the vmaf score.
 
 	// Compute the VMAF score.
-	filterCmd := fmt.Sprintf("[0:v]scale=%s:flags=bicubic:[main];[main][1:v]libvmaf=n_threads=8:log_fmt=json:log_path=%s.json", referenceResolution.ToFilterString(), testFilename)
+	logPath := fmt.Sprintf("%s.json", testFilename)
+
+	filterCmd := fmt.Sprintf("[0:v]scale=%s:flags=bicubic:[main];[main][1:v]libvmaf=n_threads=8:log_fmt=json:log_path=%s", referenceResolution.ToFilterString(), logPath)
 
 	cmd := exec.Command("ffmpeg", "-i", testFilename, "-i", referenceFilename, "-filter_complex", filterCmd, "-f", "null", "-")
 	fmt.Printf("Executing command: %s\n", cmd.String())
@@ -93,7 +114,8 @@ func ComputeVmaf(referenceFilename string, referenceResolution Resolution, testF
 		return
 	}
 
-	result <- 0.0
+	// Parse the log file.
+	result <- ParseVmafLogFile(logPath)
 }
 
 func GetOptimalResolutionForRate(referenceVideoFilename string, referenceVideoResolution Resolution, rate int, candidateResolution Resolution) (ConvexHullPoint, error) {
