@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"strings"
 )
 
 type Resolution struct {
@@ -125,11 +126,13 @@ func GetOptimalResolutionForRate(referenceVideoFilename string, referenceVideoRe
 		return ConvexHullPoint{Resolution: candidateResolution, Rate: rate, VmafScore: -1.}, nil
 	}
 
-	candidateResolutionEncodedFilename := fmt.Sprintf("%s_%dx%d_%dkbps", referenceVideoFilename, candidateResolution.Height, candidateResolution.Width, rate)
+	referenceFileName := strings.Split(referenceVideoFilename, ".")[0]
+	referenceExt := strings.Split(referenceVideoFilename, ".")[1]
+	candidateResolutionEncodedFilename := fmt.Sprintf("%s_%dx%d_%dkbps.%s", referenceFileName, candidateResolution.Height, candidateResolution.Width, rate, referenceExt)
 	candidateResolutionEncodeSuccess := make(chan bool)
 	go EncodeVideo(referenceVideoFilename, candidateResolutionEncodedFilename, candidateResolution, rate, candidateResolutionEncodeSuccess)
 
-	nextResolutionEncodedFilename := fmt.Sprintf("%s_%dx%d_%dkbps", referenceVideoFilename, nextResolution.Height, nextResolution.Width, rate)
+	nextResolutionEncodedFilename := fmt.Sprintf("%s_%dx%d_%dkbps.%s", referenceFileName, nextResolution.Height, nextResolution.Width, rate, referenceExt)
 	nextResolutionEncodeSuccess := make(chan bool)
 	go EncodeVideo(referenceVideoFilename, nextResolutionEncodedFilename, nextResolution, rate, nextResolutionEncodeSuccess)
 
@@ -195,28 +198,21 @@ func GetVideoResolutionAndBitrate(filename string) (Resolution, int) {
 	return resolution, rate
 }
 
-//func main() {
-//	filenames := []string{"test.mp4", "test2.mp4"}
-//
-//	for _, filename := range filenames {
-//		resolution, rate := GetVideoResolutionAndBitrate(filename)
-//		if resolution.Height > 1080 {
-//			fmt.Printf("Video %s has resolution %dx%d. Skipping.\n", filename, resolution.Height, resolution.Width)
-//			continue
-//		}
-//
-//		convexHull, err := WalkConvexHull(filename, resolution, rate, 20)
-//		if err != nil {
-//			fmt.Printf("Error walking convex hull for %s. Error code: %s\n", filename, err.Error())
-//			return
-//		}
-//		fmt.Printf("Convex hull for %s: %v\n", filename, convexHull)
-//	}
-//}
-
 func main() {
-	score := make(chan float64, 1)
-	go ComputeVmaf("test.mp4", Resolution{Height: 480, Width: 720}, "test_480x360_150kbps.mp4", score)
-	fmt.Printf("Score: %f\n", <-score)
-	//fmt.Printf("%f\n", ParseVmafScoreFromLogFile("log.json"))
+	filenames := []string{"test.mp4"}
+
+	for _, filename := range filenames {
+		resolution, rate := GetVideoResolutionAndBitrate(filename)
+		if resolution.Height > 1080 {
+			fmt.Printf("Video %s has resolution %dx%d. Skipping.\n", filename, resolution.Height, resolution.Width)
+			continue
+		}
+
+		convexHull, err := WalkConvexHull(filename, resolution, rate, 20)
+		if err != nil {
+			fmt.Printf("Error walking convex hull for %s. Error code: %s\n", filename, err.Error())
+			return
+		}
+		fmt.Printf("Convex hull for %s: %v\n", filename, convexHull)
+	}
 }
