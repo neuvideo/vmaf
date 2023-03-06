@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -8,7 +9,9 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"sort"
 	"strings"
+	"sync"
 )
 
 type Resolution struct {
@@ -60,8 +63,7 @@ func GetTargetRates(rate int, numRates int) []int {
 		targetRates = append(targetRates, currentRate)
 	}
 
-	targetRates = append(targetRates, rate)
-
+	sort.Reverse(sort.IntSlice(targetRates))
 	return targetRates
 }
 
@@ -88,6 +90,7 @@ func ParseVmafScoreFromLogFile(logPath string) float64 {
 		return -1.0
 	}
 	defer jsonFile.Close()
+	os.Remove(logPath)
 	byteValue, _ := ioutil.ReadAll(jsonFile)
 
 	var result map[string]map[string]map[string]interface{}
@@ -109,7 +112,7 @@ func ComputeVmaf(referenceFilename string, referenceResolution Resolution, testF
 	fmt.Printf("Executing command: %s\n", cmd.String())
 	err := cmd.Run()
 	if err != nil {
-		fmt.Printf("Error encoding video: %s\n", err.Error())
+		fmt.Printf("Error computing vmaf: %s\n", err.Error())
 		result <- -1.0
 		return
 	}
@@ -154,6 +157,9 @@ func GetOptimalResolutionForRate(referenceVideoFilename string, referenceVideoRe
 	candidateResolutionVmaf := <-candidateVmafResult
 	nextResolutionVmaf := <-nextVmafResult
 
+	os.Remove(candidateResolutionEncodedFilename)
+	os.Remove(nextResolutionEncodedFilename)
+
 	if candidateResolutionVmaf < 0 || nextResolutionVmaf < 0 {
 		return ConvexHullPoint{}, errors.New("failed to compute VMAF")
 	}
@@ -194,25 +200,83 @@ func GetVideoResolutionAndBitrate(filename string) (Resolution, int) {
 	}
 	resolution.Width = video.Width()
 	resolution.Height = video.Height()
-	rate = video.Bitrate()
+	rate = video.Bitrate() / 1000
 	return resolution, rate
 }
 
+func WriteConvexHullToJson(convexHull []ConvexHullPoint, filename string) error {
+	jsonFile, err := os.Create(filename)
+	if err != nil {
+		fmt.Printf("Error creating json file %s. Error code: %s\n", filename, err.Error())
+		return err
+	}
+	defer jsonFile.Close()
+
+	encoder := json.NewEncoder(jsonFile)
+	encoder.SetIndent("", "    ")
+	err = encoder.Encode(convexHull)
+	if err != nil {
+		fmt.Printf("Error encoding json file %s. Error code: %s\n", filename, err.Error())
+		return err
+	}
+	return nil
+}
+
+func EstimateVmafConvexHull(videoFilename string, wg *sync.WaitGroup) {
+	defer wg.Done()
+	convexHullFilename := fmt.Sprintf("%s_convex_hull.json", strings.Split(videoFilename, ".")[0])
+	_, err := os.OpenFile(convexHullFilename, os.O_RDONLY, 0666)
+	if !os.IsNotExist(err) {
+		fmt.Printf("Convex hull file %s already exists. Skipping.\n", convexHullFilename)
+		return
+	}
+
+	resolution, rate := GetVideoResolutionAndBitrate(videoFilename)
+	fmt.Printf("Resolution: %s Rate: %d\n", resolution.ToFilterString(), rate)
+	if resolution.Height > 1080 {
+		fmt.Printf("Video %s has resolution %dx%d. Skipping.\n", videoFilename, resolution.Height, resolution.Width)
+		return
+	}
+
+	convexHull, err := WalkConvexHull(videoFilename, resolution, rate, 20)
+	if err != nil {
+		fmt.Printf("Error walking convex hull for %s. Error code: %s\n", videoFilename, err.Error())
+		return
+	}
+
+	err = WriteConvexHullToJson(convexHull, convexHullFilename)
+	if err != nil {
+		fmt.Printf("Error writing convex hull to json file %s. Error code: %s\n", convexHullFilename, err.Error())
+	}
+}
+
+func readLines(path string) ([]string, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	var lines []string
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		lines = append(lines, scanner.Text())
+	}
+	return lines, scanner.Err()
+}
+
 func main() {
-	filenames := []string{"test.mp4"}
+	filenames, err := readLines("video_filenames.txt")
+	if err != nil {
+		fmt.Printf("Error reading video filenames. Error code: %s\", err.Error()")
+		return
+	}
+
+	var wg sync.WaitGroup
+	wg.Add(len(filenames))
 
 	for _, filename := range filenames {
-		resolution, rate := GetVideoResolutionAndBitrate(filename)
-		if resolution.Height > 1080 {
-			fmt.Printf("Video %s has resolution %dx%d. Skipping.\n", filename, resolution.Height, resolution.Width)
-			continue
-		}
-
-		convexHull, err := WalkConvexHull(filename, resolution, rate, 20)
-		if err != nil {
-			fmt.Printf("Error walking convex hull for %s. Error code: %s\n", filename, err.Error())
-			return
-		}
-		fmt.Printf("Convex hull for %s: %v\n", filename, convexHull)
+		go EstimateVmafConvexHull("videos/"+filename, &wg)
 	}
+	wg.Wait()
 }
