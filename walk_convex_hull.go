@@ -90,10 +90,7 @@ func ParseVmafScoreFromLogFile(logPath string) float64 {
 	byteValue, _ := ioutil.ReadAll(jsonFile)
 
 	var result map[string]map[string]map[string]interface{}
-	err = json.Unmarshal(byteValue, &result)
-	if err != nil {
-		return -1.0
-	}
+	json.Unmarshal([]byte(byteValue), &result)
 
 	return result["pooled_metrics"]["vmaf"]["mean"].(float64)
 }
@@ -221,4 +218,5 @@ func main() {
 	score := make(chan float64, 1)
 	go ComputeVmaf("test.mp4", Resolution{Height: 480, Width: 720}, "test_480x360_150kbps.mp4", score)
 	fmt.Printf("Score: %f\n", <-score)
+	//fmt.Printf("%f\n", ParseVmafScoreFromLogFile("log.json"))
 }
