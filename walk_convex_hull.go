@@ -270,6 +270,13 @@ func readLines(path string) ([]string, error) {
 	return lines, scanner.Err()
 }
 
+func IntMin(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
 func main() {
 	filenames, err := readLines("video_filenames.txt")
 	if err != nil {
@@ -279,11 +286,13 @@ func main() {
 	var wg sync.WaitGroup
 	batchSize := 10
 	for i := 0; i < len(filenames); i++ {
-		wg.Add(batchSize)
-		for j := i; j < i+batchSize && j < len(filenames); j++ {
-			go EstimateVmafConvexHull(filenames[j], &wg)
+		effectiveBatchSize := IntMin(len(filenames)-i, batchSize)
+		wg.Add(effectiveBatchSize)
+		for j := i; j < i+effectiveBatchSize; j++ {
+			go EstimateVmafConvexHull("videos/"+filenames[j], &wg)
 		}
-		i += batchSize
+		fmt.Printf("Batch of size %d started\n", effectiveBatchSize)
+		i += effectiveBatchSize - 1
 		wg.Wait()
 	}
 
