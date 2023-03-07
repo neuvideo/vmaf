@@ -10,7 +10,6 @@ import (
 	"os"
 	"os/exec"
 	"strings"
-	"sync"
 )
 
 type Resolution struct {
@@ -227,8 +226,7 @@ func WriteConvexHullToJson(convexHull []ConvexHullPoint, filename string) error 
 	return nil
 }
 
-func EstimateVmafConvexHull(videoFilename string, wg *sync.WaitGroup) {
-	defer wg.Done()
+func EstimateVmafConvexHull(videoFilename string) {
 	convexHullFilename := fmt.Sprintf("%s_convex_hull.json", strings.TrimSuffix(videoFilename, ".mp4"))
 	_, err := os.OpenFile(convexHullFilename, os.O_RDONLY, 0666)
 	if !os.IsNotExist(err) {
@@ -277,11 +275,7 @@ func main() {
 		return
 	}
 
-	var wg sync.WaitGroup
-	wg.Add(len(filenames))
-
 	for _, filename := range filenames {
-		go EstimateVmafConvexHull("videos/"+filename, &wg)
+		EstimateVmafConvexHull("videos/" + filename)
 	}
-	wg.Wait()
 }
