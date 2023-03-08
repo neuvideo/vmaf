@@ -1,0 +1,114 @@
+[
+    {
+        "Resolution": {
+            "Height": 720,
+            "Width": 960
+        },
+        "Rate": 2100,
+        "VmafScore": 98.839438
+    },
+    {
+        "Resolution": {
+            "Height": 720,
+            "Width": 960
+        },
+        "Rate": 1950,
+        "VmafScore": 98.815346
+    },
+    {
+        "Resolution": {
+            "Height": 720,
+            "Width": 960
+        },
+        "Rate": 1800,
+        "VmafScore": 98.775674
+    },
+    {
+        "Resolution": {
+            "Height": 720,
+            "Width": 960
+        },
+        "Rate": 1650,
+        "VmafScore": 98.743241
+    },
+    {
+        "Resolution": {
+            "Height": 720,
+            "Width": 960
+        },
+        "Rate": 1500,
+        "VmafScore": 98.726122
+    },
+    {
+        "Resolution": {
+            "Height": 720,
+            "Width": 960
+        },
+        "Rate": 1350,
+        "VmafScore": 98.70146
+    },
+    {
+        "Resolution": {
+            "Height": 720,
+            "Width": 960
+        },
+        "Rate": 1200,
+        "VmafScore": 98.600057
+    },
+    {
+        "Resolution": {
+            "Height": 720,
+            "Width": 960
+        },
+        "Rate": 1050,
+        "VmafScore": 98.543865
+    },
+    {
+        "Resolution": {
+            "Height": 720,
+            "Width": 960
+        },
+        "Rate": 900,
+        "VmafScore": 98.389221
+    },
+    {
+        "Resolution": {
+            "Height": 720,
+            "Width": 960
+        },
+        "Rate": 750,
+        "VmafScore": 98.208499
+    },
+    {
+        "Resolution": {
+            "Height": 720,
+            "Width": 960
+        },
+        "Rate": 600,
+        "VmafScore": 97.880943
+    },
+    {
+        "Resolution": {
+            "Height": 720,
+            "Width": 960
+        },
+        "Rate": 450,
+        "VmafScore": 97.128319
+    },
+    {
+        "Resolution": {
+            "Height": 720,
+            "Width": 960
+        },
+        "Rate": 300,
+        "VmafScore": 95.404054
+    },
+    {
+        "Resolution": {
+            "Height": 720,
+            "Width": 960
+        },
+        "Rate": 150,
+        "VmafScore": 84.913554
+    }
+]

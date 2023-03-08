@@ -1,0 +1,34 @@
+[
+    {
+        "Resolution": {
+            "Height": 480,
+            "Width": 720
+        },
+        "Rate": 600,
+        "VmafScore": 97.148554
+    },
+    {
+        "Resolution": {
+            "Height": 480,
+            "Width": 720
+        },
+        "Rate": 450,
+        "VmafScore": 96.59872
+    },
+    {
+        "Resolution": {
+            "Height": 480,
+            "Width": 720
+        },
+        "Rate": 300,
+        "VmafScore": 95.248048
+    },
+    {
+        "Resolution": {
+            "Height": 480,
+            "Width": 720
+        },
+        "Rate": 150,
+        "VmafScore": 90.869619
+    }
+]
