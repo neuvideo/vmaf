@@ -1,0 +1,162 @@
+[
+    {
+        "Resolution": {
+            "Height": 468,
+            "Width": 632
+        },
+        "Rate": 5147,
+        "VmafScore": 98.929352
+    },
+    {
+        "Resolution": {
+            "Height": 468,
+            "Width": 632
+        },
+        "Rate": 4884,
+        "VmafScore": 98.894833
+    },
+    {
+        "Resolution": {
+            "Height": 468,
+            "Width": 632
+        },
+        "Rate": 4621,
+        "VmafScore": 98.860558
+    },
+    {
+        "Resolution": {
+            "Height": 468,
+            "Width": 632
+        },
+        "Rate": 4358,
+        "VmafScore": 98.816728
+    },
+    {
+        "Resolution": {
+            "Height": 468,
+            "Width": 632
+        },
+        "Rate": 4095,
+        "VmafScore": 98.760518
+    },
+    {
+        "Resolution": {
+            "Height": 468,
+            "Width": 632
+        },
+        "Rate": 3832,
+        "VmafScore": 98.706047
+    },
+    {
+        "Resolution": {
+            "Height": 468,
+            "Width": 632
+        },
+        "Rate": 3569,
+        "VmafScore": 98.621841
+    },
+    {
+        "Resolution": {
+            "Height": 468,
+            "Width": 632
+        },
+        "Rate": 3306,
+        "VmafScore": 98.525537
+    },
+    {
+        "Resolution": {
+            "Height": 468,
+            "Width": 632
+        },
+        "Rate": 3043,
+        "VmafScore": 98.406427
+    },
+    {
+        "Resolution": {
+            "Height": 468,
+            "Width": 632
+        },
+        "Rate": 2780,
+        "VmafScore": 98.241405
+    },
+    {
+        "Resolution": {
+            "Height": 468,
+            "Width": 632
+        },
+        "Rate": 2517,
+        "VmafScore": 98.007342
+    },
+    {
+        "Resolution": {
+            "Height": 468,
+            "Width": 632
+        },
+        "Rate": 2254,
+        "VmafScore": 97.686716
+    },
+    {
+        "Resolution": {
+            "Height": 468,
+            "Width": 632
+        },
+        "Rate": 1991,
+        "VmafScore": 97.144023
+    },
+    {
+        "Resolution": {
+            "Height": 468,
+            "Width": 632
+        },
+        "Rate": 1728,
+        "VmafScore": 96.223032
+    },
+    {
+        "Resolution": {
+            "Height": 468,
+            "Width": 632
+        },
+        "Rate": 1465,
+        "VmafScore": 94.513962
+    },
+    {
+        "Resolution": {
+            "Height": 468,
+            "Width": 632
+        },
+        "Rate": 1202,
+        "VmafScore": 91.263788
+    },
+    {
+        "Resolution": {
+            "Height": 468,
+            "Width": 632
+        },
+        "Rate": 939,
+        "VmafScore": 86.009784
+    },
+    {
+        "Resolution": {
+            "Height": 360,
+            "Width": 640
+        },
+        "Rate": 676,
+        "VmafScore": 78.663344
+    },
+    {
+        "Resolution": {
+            "Height": 270,
+            "Width": 480
+        },
+        "Rate": 413,
+        "VmafScore": 70.122612
+    },
+    {
+        "Resolution": {
+            "Height": 270,
+            "Width": 480
+        },
+        "Rate": 150,
+        "VmafScore": -1
+    }
+]
