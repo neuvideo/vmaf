@@ -22,7 +22,17 @@ func (resolution *Resolution) ToFilterString() string {
 	return fmt.Sprintf("%dx%d", resolution.Width, resolution.Height)
 }
 
-var resolutions = []Resolution{{1080, 1920}, {720, 1280}, {540, 960}, {360, 640}, {270, 480}}
+var resolutions = []Resolution{{2160, 3840},
+	{1440, 2560},
+	{1080, 1920},
+	{720, 1280},
+	{540, 960},
+	{480, 854},
+	{432, 768},
+	{360, 640},
+	{342, 608},
+	{270, 480},
+	{144, 256}}
 
 type ConvexHullPoint struct {
 	Resolution Resolution
@@ -46,20 +56,12 @@ func IntMax(a int, b int) int {
 	return b
 }
 
-func GetTargetRates(rate int, numRates int) []int {
+func GetTargetRates(rate int) []int {
 	var targetRates []int
 
-	// The minimum rate is 150kbps and the minimum gap between rates is 150kpbs.
-	gap := IntMax(rate/numRates, 150)
-	currentRate := 150
-	targetRates = append(targetRates, currentRate)
-
-	for i := 1; i < numRates; i++ {
-		currentRate += gap
-		if currentRate >= rate {
-			break
-		}
-		targetRates = append(targetRates, currentRate)
+	// Add all rates starting at 500, in increments of 500, until we reach the rate or 10,000.
+	for i := 500; i <= IntMin(rate, 10000); i += 500 {
+		targetRates = append(targetRates, i)
 	}
 
 	// In reverse order
@@ -177,8 +179,8 @@ func GetOptimalResolutionForRate(referenceVideoFilename string, referenceVideoRe
 	return ConvexHullPoint{Resolution: nextResolution, Rate: rate, VmafScore: nextResolutionVmaf}, nil
 }
 
-func WalkConvexHull(referenceVideoFilename string, referenceVideoResolution Resolution, referenceVideoRate int, numRates int) ([]ConvexHullPoint, error) {
-	targetRates := GetTargetRates(referenceVideoRate, numRates)
+func WalkConvexHull(referenceVideoFilename string, referenceVideoResolution Resolution, referenceVideoRate int) ([]ConvexHullPoint, error) {
+	targetRates := GetTargetRates(referenceVideoRate)
 
 	convexHull := make([]ConvexHullPoint, 0)
 	currentResolution := referenceVideoResolution
@@ -229,7 +231,7 @@ func WriteConvexHullToJson(convexHull []ConvexHullPoint, filename string) error 
 
 func EstimateVmafConvexHull(videoFilename string, wg *sync.WaitGroup) {
 	defer wg.Done()
-	convexHullFilename := fmt.Sprintf("%s_convex_hull.json", strings.TrimSuffix(videoFilename, ".mp4"))
+	convexHullFilename := fmt.Sprintf("%s.json", strings.TrimSuffix(videoFilename, ".mp4"))
 	_, err := os.OpenFile(convexHullFilename, os.O_RDONLY, 0666)
 	if !os.IsNotExist(err) {
 		fmt.Printf("Convex hull file %s already exists. Skipping.\n", convexHullFilename)
@@ -243,7 +245,7 @@ func EstimateVmafConvexHull(videoFilename string, wg *sync.WaitGroup) {
 		return
 	}
 
-	convexHull, err := WalkConvexHull(videoFilename, resolution, rate, 20)
+	convexHull, err := WalkConvexHull(videoFilename, resolution, rate)
 	if err != nil {
 		fmt.Printf("Error walking convex hull for %s. Error code: %s\n", videoFilename, err.Error())
 		return
@@ -277,14 +279,19 @@ func IntMin(a, b int) int {
 	return b
 }
 
+//func main() {
+//	// Print target rates
+//	fmt.Printf("Target rates: %v\n", GetTargetRates(1000))
+//}
+
 func main() {
-	filenames, err := readLines("video_filenames.txt")
+	filenames, err := readLines("filenames.txt")
 	if err != nil {
 		fmt.Printf("Error reading video filenames. Error code: %s\", err.Error()")
 		return
 	}
 	var wg sync.WaitGroup
-	batchSize := 10
+	batchSize := 100
 	for i := 0; i < len(filenames); i++ {
 		effectiveBatchSize := IntMin(len(filenames)-i, batchSize)
 		wg.Add(effectiveBatchSize)
@@ -295,5 +302,4 @@ func main() {
 		i += effectiveBatchSize - 1
 		wg.Wait()
 	}
-
 }
