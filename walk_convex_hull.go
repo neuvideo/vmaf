@@ -245,6 +245,19 @@ func EstimateVmafConvexHull(videoFilename string, wg *sync.WaitGroup) {
 		return
 	}
 
+	found := false
+	for _, validResolution := range resolutions {
+		if resolution.Height == validResolution.Height && resolution.Width == validResolution.Width {
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		fmt.Printf("Video %s has resolution %dx%d. Skipping.\n", videoFilename, resolution.Height, resolution.Width)
+		return
+	}
+
 	convexHull, err := WalkConvexHull(videoFilename, resolution, rate)
 	if err != nil {
 		fmt.Printf("Error walking convex hull for %s. Error code: %s\n", videoFilename, err.Error())
