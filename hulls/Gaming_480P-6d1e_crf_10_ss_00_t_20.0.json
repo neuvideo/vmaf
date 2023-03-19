@@ -1,0 +1,42 @@
+[
+    {
+        "Resolution": {
+            "Height": 480,
+            "Width": 566
+        },
+        "Rate": 2500,
+        "VmafScore": 97.503938
+    },
+    {
+        "Resolution": {
+            "Height": 480,
+            "Width": 566
+        },
+        "Rate": 2000,
+        "VmafScore": 97.192425
+    },
+    {
+        "Resolution": {
+            "Height": 480,
+            "Width": 566
+        },
+        "Rate": 1500,
+        "VmafScore": 96.700017
+    },
+    {
+        "Resolution": {
+            "Height": 480,
+            "Width": 566
+        },
+        "Rate": 1000,
+        "VmafScore": 95.761581
+    },
+    {
+        "Resolution": {
+            "Height": 480,
+            "Width": 566
+        },
+        "Rate": 500,
+        "VmafScore": 93.342791
+    }
+]
