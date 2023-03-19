@@ -1,0 +1,18 @@
+[
+    {
+        "Resolution": {
+            "Height": 360,
+            "Width": 642
+        },
+        "Rate": 1000,
+        "VmafScore": 96.723264
+    },
+    {
+        "Resolution": {
+            "Height": 360,
+            "Width": 642
+        },
+        "Rate": 500,
+        "VmafScore": 95.613328
+    }
+]

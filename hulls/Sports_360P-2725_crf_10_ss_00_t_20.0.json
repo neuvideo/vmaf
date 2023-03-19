@@ -1,0 +1,106 @@
+[
+    {
+        "Resolution": {
+            "Height": 352,
+            "Width": 640
+        },
+        "Rate": 6500,
+        "VmafScore": 99.973336
+    },
+    {
+        "Resolution": {
+            "Height": 352,
+            "Width": 640
+        },
+        "Rate": 6000,
+        "VmafScore": 99.969097
+    },
+    {
+        "Resolution": {
+            "Height": 352,
+            "Width": 640
+        },
+        "Rate": 5500,
+        "VmafScore": 99.965427
+    },
+    {
+        "Resolution": {
+            "Height": 352,
+            "Width": 640
+        },
+        "Rate": 5000,
+        "VmafScore": 99.961082
+    },
+    {
+        "Resolution": {
+            "Height": 352,
+            "Width": 640
+        },
+        "Rate": 4500,
+        "VmafScore": 99.956509
+    },
+    {
+        "Resolution": {
+            "Height": 352,
+            "Width": 640
+        },
+        "Rate": 4000,
+        "VmafScore": 99.944998
+    },
+    {
+        "Resolution": {
+            "Height": 352,
+            "Width": 640
+        },
+        "Rate": 3500,
+        "VmafScore": 99.89542
+    },
+    {
+        "Resolution": {
+            "Height": 352,
+            "Width": 640
+        },
+        "Rate": 3000,
+        "VmafScore": 99.754388
+    },
+    {
+        "Resolution": {
+            "Height": 342,
+            "Width": 608
+        },
+        "Rate": 2500,
+        "VmafScore": 99.412697
+    },
+    {
+        "Resolution": {
+            "Height": 270,
+            "Width": 480
+        },
+        "Rate": 2000,
+        "VmafScore": 98.759717
+    },
+    {
+        "Resolution": {
+            "Height": 270,
+            "Width": 480
+        },
+        "Rate": 1500,
+        "VmafScore": 97.402313
+    },
+    {
+        "Resolution": {
+            "Height": 270,
+            "Width": 480
+        },
+        "Rate": 1000,
+        "VmafScore": 94.362412
+    },
+    {
+        "Resolution": {
+            "Height": 270,
+            "Width": 480
+        },
+        "Rate": 500,
+        "VmafScore": 85.808625
+    }
+]
